@@ -489,7 +489,11 @@
 var LootEngine = (function () {
   "use strict";
 
-  var ANY = " any";
+  // A target that no registry name can equal: a registry name is [a-z0-9_.-]:[a-z0-9_./-],
+  // so an asterisk cannot collide with one. It was a NUL until a publish warned that a
+  // browser rewrites that byte to U+FFFD inside an HTML file, which would have changed the
+  // sentinel on the page while leaving it correct everywhere it was tested.
+  var ANY = "*any*";
 
   // A pool is [[rollLo, rollHi], [bonusLo, bonusHi], conditionChance, entries]
   // An entry is [kind, name, weight, quality, conditionChance], kind 0 item, 1 table, 2 empty.
@@ -568,7 +572,7 @@ var LootEngine = (function () {
     }
 
     function pTable(name, target) {
-      var key = name + "" + target;
+      var key = name + "|" + target;
       if (key in memo) return memo[key];
       memo[key] = 0;                      // a cycle resolves to zero rather than looping
       var pools = tables[name];
