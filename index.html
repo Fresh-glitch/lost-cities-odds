@@ -571,6 +571,16 @@
   const pos = n => (Math.log10(n) - Math.log10(LO)) / (Math.log10(HI) - Math.log10(LO));
   const TICKS = [10, 100, 1000, 1e4, 1e5, 1e6];
 
+  // Every decade gets a gridline, but not every decade gets a label: six of them across a phone's
+  // 230 pixels of track ran together into one smear. Narrow screens label every other decade, and
+  // the narrowest label only the ends they need to read the scale by.
+  function labelTicks() {
+    const w = window.innerWidth;
+    if (w >= 700) return TICKS;
+    if (w >= 460) return [10, 1000, 1e5];
+    return [10, 1e4];
+  }
+
   function buildLadder() {
     const el = $("ladder");
     el.innerHTML = "";
@@ -584,7 +594,7 @@
 
     const axis = document.createElement("div");
     axis.className = "axis";
-    TICKS.forEach(n => {
+    labelTicks().forEach(n => {
       const s = document.createElement("span");
       s.style.left = (pos(n) * 100) + "%";
       s.textContent = fmtN(n);
@@ -843,6 +853,14 @@
     $("chests").addEventListener("input", () => { planner(); buildLadder(); buildTable(); });
     $("rarity").addEventListener("input", () => { planner(); buildLadder(); buildTable(); });
   }
+
+  // The label set depends on the width, so a rotated phone or a dragged window needs the axis
+  // drawn again. Only the ladder, and only after the resize settles.
+  let resizeTimer = 0;
+  window.addEventListener("resize", () => {
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(buildLadder, 150);
+  });
 
   syncMode();
   render();
