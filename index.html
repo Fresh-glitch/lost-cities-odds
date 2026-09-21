@@ -686,7 +686,7 @@ if (typeof module !== "undefined" && module.exports) module.exports = LootEngine
 
   /* ---- formatting ----------------------------------------------------------------------- */
   function fmtN(n) {
-    if (n === null || !isFinite(n)) return "—";
+    if (n === null || !isFinite(n)) return "\u2014";
     if (n < 10) return "1 in " + n.toFixed(1).replace(/\.0$/, "");
     if (n < 1000) return "1 in " + Math.round(n);
     if (n < 1e6) return "1 in " + (Math.round(n / 100) / 10).toFixed(1).replace(/\.0$/, "") + "k";
@@ -964,12 +964,12 @@ if (typeof module !== "undefined" && module.exports) module.exports = LootEngine
       const chip = document.createElement("span");
       chip.className = "chip";
       const t = document.createElement("span");
-      t.textContent = it.name + (it.q ? " · q" + it.q : "") + " · ";
+      t.textContent = it.name + (it.q ? " \u00b7 q" + it.q : "") + " \u00b7 ";
       const b = document.createElement("b");
       b.textContent = fmtN(p > 0 ? 1 / p : null);
       const x = document.createElement("button");
       x.type = "button";
-      x.textContent = "×";
+      x.textContent = "\u00d7";
       x.title = "Remove " + it.name;
       x.setAttribute("aria-label", "Remove " + it.name);
       x.addEventListener("click", () => { custom.splice(i, 1); save(); render(); });
@@ -1038,7 +1038,7 @@ if (typeof module !== "undefined" && module.exports) module.exports = LootEngine
         th.setAttribute("aria-sort", sortDir > 0 ? "ascending" : "descending");
         const c = document.createElement("span");
         c.className = "caret";
-        c.textContent = sortDir > 0 ? "▲" : "▼";
+        c.textContent = sortDir > 0 ? "\u25b2" : "\u25bc";
         th.appendChild(c);
       }
       th.addEventListener("click", () => {
@@ -1094,7 +1094,7 @@ if (typeof module !== "undefined" && module.exports) module.exports = LootEngine
       const best = Math.max.apply(null, vals);
       vals.forEach(p => {
         const c = document.createElement("td");
-        if (p <= 0) { c.className = "zero"; c.textContent = "—"; }
+        if (p <= 0) { c.className = "zero"; c.textContent = "\u2014"; }
         else { if (p === best) c.className = "best"; c.textContent = fmtN(1 / p); }
         tr.appendChild(c);
       });
