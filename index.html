@@ -495,6 +495,15 @@ var LootEngine = (function () {
   // sentinel on the page while leaving it correct everywhere it was tested.
   var ANY = "*any*";
 
+  // The reference works in exact fractions and gets a clean zero for an item no path can
+  // reach. Doubles do not: the same answer came back as 5.8e-17, from subtracting a product of
+  // near-ones from one, and the table drew it as "1 in 17371027134.1M". The smallest chance these
+  // tables actually produce is about one in 811 thousand, eleven orders of magnitude above this
+  // floor, so anything under it is arithmetic noise and not a chance.
+  var EPS = 1e-12;
+
+  function clean(v) { return v < EPS ? 0 : v; }
+
   // A pool is [[rollLo, rollHi], [bonusLo, bonusHi], conditionChance, entries]
   // An entry is [kind, name, weight, quality, conditionChance], kind 0 item, 1 table, 2 empty.
   function create(tables, luck) {
@@ -579,7 +588,7 @@ var LootEngine = (function () {
       if (!pools) return 0;
       var none = 1, i;
       for (i = 0; i < pools.length; i++) none *= 1 - pPool(pools[i], target);
-      memo[key] = 1 - none;
+      memo[key] = clean(1 - none);
       return memo[key];
     }
 
@@ -587,7 +596,7 @@ var LootEngine = (function () {
     function pChest(mix, target) {
       var p = 0, i;
       for (i = 0; i < mix.length; i++) p += mix[i][0] * pTable(mix[i][1], target);
-      return p;
+      return clean(p);
     }
 
     /* An item of the viewer's own, described three ways.
@@ -616,14 +625,14 @@ var LootEngine = (function () {
         none *= 1 - pool[2] * (1 - noneOver(
           rollDist(pool[0][0], pool[0][1], pool[1][0], pool[1][1]), w / total2));
       }
-      return 1 - none;
+      return clean(1 - none);
     }
 
     function pCustomChest(mix, item) {
       if (item.mode === "flat") return 1 / item.a;
       var p = 0, i;
       for (i = 0; i < mix.length; i++) p += mix[i][0] * pCustom(item, mix[i][1]);
-      return p;
+      return clean(p);
     }
 
     return {
@@ -681,7 +690,11 @@ if (typeof module !== "undefined" && module.exports) module.exports = LootEngine
     if (n < 10) return "1 in " + n.toFixed(1).replace(/\.0$/, "");
     if (n < 1000) return "1 in " + Math.round(n);
     if (n < 1e6) return "1 in " + (Math.round(n / 100) / 10).toFixed(1).replace(/\.0$/, "") + "k";
-    return "1 in " + (n / 1e6).toFixed(1) + "M";
+    if (n < 1e9) return "1 in " + (n / 1e6).toFixed(1) + "M";
+    // Nothing in these tables is this rare, so a number here means something went wrong upstream
+    // rather than that the odds are long. Say so in a readable way instead of drawing a wall of
+    // digits, which is what "1 in 17371027134.1M" was.
+    return "1 in " + n.toExponential(1).replace("e+", "e");
   }
 
   function pct(p) {
