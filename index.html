@@ -418,8 +418,12 @@
   const STORE = "lcodds.custom.v1";
 
   let ctx = CTX[0];
-  let sortCol = 0;
+  // Until somebody clicks a header the table sorts on whichever context is selected, rarest
+  // first, so the page opens on the part worth looking at rather than on a row of string and
+  // rotten flesh. A click pins the column and the sorting stops following the context.
+  let sortCol = 1;
   let sortDir = 1;
+  let sortTouched = false;
   let query = "";
   let custom = [];
   let pinOne = PINNED ? PINNED.one : 0;
@@ -722,13 +726,18 @@
   }
 
   /* ---- table ---------------------------------------------------------------------------------- */
+  function activeSort() {
+    return sortTouched ? sortCol : 1 + CTX.indexOf(ctx);
+  }
+
   function buildHead() {
     const tr = $("thead");
     tr.innerHTML = "";
+    const active = activeSort();
     ["Item"].concat(CTX).forEach((name, i) => {
       const th = document.createElement("th");
       th.textContent = name;
-      if (sortCol === i) {
+      if (active === i) {
         th.setAttribute("aria-sort", sortDir > 0 ? "ascending" : "descending");
         const c = document.createElement("span");
         c.className = "caret";
@@ -736,8 +745,10 @@
         th.appendChild(c);
       }
       th.addEventListener("click", () => {
-        if (sortCol === i) sortDir = -sortDir;
-        else { sortCol = i; sortDir = i === 0 ? 1 : -1; }
+        const was = activeSort();
+        sortTouched = true;
+        if (was === i) sortDir = -sortDir;
+        else { sortCol = i; sortDir = 1; }
         render();
       });
       tr.appendChild(th);
@@ -751,10 +762,15 @@
     const all = rows();
     let list = all.filter(r => !q || r.label.toLowerCase().includes(q) || r.id.toLowerCase().includes(q));
 
+    const active = activeSort();
     list = list.slice().sort((a, b) => {
-      if (sortCol === 0) return sortDir * a.label.localeCompare(b.label);
-      const c = CTX[sortCol - 1];
-      return sortDir * ((a.p[c] || 0) - (b.p[c] || 0));
+      if (active === 0) return sortDir * a.label.localeCompare(b.label);
+      const c = CTX[active - 1];
+      // An item that cannot appear at all sorts to the end rather than to the rare end, since
+      // "never" is not the same kind of answer as "one in a million".
+      const pa = a.p[c] || 0, pb = b.p[c] || 0;
+      if ((pa === 0) !== (pb === 0)) return pa === 0 ? 1 : -1;
+      return sortDir * (pa - pb);
     });
 
     const frag = document.createDocumentFragment();
